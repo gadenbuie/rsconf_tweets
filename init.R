@@ -25,7 +25,11 @@ cacheFile <- 'data/rsconf_tweets.rds'
 # saveRDS(twitter_token, .TWITTER_PAT)
 
 get_new_tweets <- function() {
-  source('twitter_secrets.R')
+  if (file.exists('twitter_secrets.R')) source('twitter_secrets.R')
+  if (!exists('.TWITTER_PAT')) {
+    .TWITTER_PAT <- Sys.getenv('TWITTER_PAT')
+    if (.TWITTER_PAT == "") .TWITTER_PAT <- './rtweet.rds'
+  }
   twitter_token <- readRDS(.TWITTER_PAT)
   
   tip_words <- "(TIL|DYK|[Tt]ip|[Ll]earned|[Uu]seful|[Kk]now|[Tt]rick)"
