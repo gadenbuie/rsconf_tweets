@@ -22,6 +22,7 @@ ui <- fluidPage(
   titlePanel("rstudio::conf_twitter()"),
   theme = shinythemes::shinytheme('yeti'),
   
+  
   column(
     width = 3,
     wellPanel(
@@ -31,18 +32,23 @@ ui <- fluidPage(
     ),
     wellPanel(class = 'tweetbox', htmlOutput('tweet')),
     tags$div(class = 'colophon', 
-             tags$p(
-               "Made with ❤️ + ☕️ by", tags$a(href = 'https://twitter.com/grrrck/', '@grrrck'),
-               'with 💪 from',
-               HTML(paste(
-                 tags$a(href = 'http://rtweet.info/', 'rtweet'),
-                 tags$a(href = 'https://www.rstudio.com/', 'RStudio'),
-                 tags$a(href = 'https://shiny.rstudio.com/', 'Shiny'),
-                 tags$a(href = 'https://www.tidyverse.org/', 'tidyverse'),
-                 tags$a(href = 'http://code.databio.org/simpleCache/', 'simpleCache'),
-                 sep = ', '
-               ))
-             ))
+             tagList(
+               tags$p(
+                 "Made with ❤️ + ☕️ by", tags$a(href = 'https://twitter.com/grrrck/', '@grrrck'),
+                 'with 💪 from',
+                 HTML(paste(
+                   tags$a(href = 'http://rtweet.info/', 'rtweet'),
+                   tags$a(href = 'https://www.rstudio.com/', 'RStudio'),
+                   tags$a(href = 'https://shiny.rstudio.com/', 'Shiny'),
+                   tags$a(href = 'https://www.tidyverse.org/', 'tidyverse'),
+                   tags$a(href = 'http://code.databio.org/simpleCache/', 'simpleCache'),
+                   sep = ', '
+                 ))),
+               tags$p(
+                 "💾 ", tags$a(href = 'https://github.com/gadenbuie/rsconf_tweets', 'View on GitHub')
+               )
+             )
+    )
   ),
   
   column(9, DT::dataTableOutput('tweets'))
