@@ -1,0 +1,6 @@
+.Rhistory
+.RData
+.Rproj.user
+*.rds
+data/*
+twitter_secrets.R
