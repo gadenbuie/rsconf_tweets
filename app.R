@@ -141,13 +141,10 @@ server <- function(input, output) {
   selection = 'single', 
   rownames = FALSE, 
   colnames = c("Timestamp", "User", "Tweet", "RT", "Fav", "Mentioned"), 
-  filter = 'top'
-  # options = list(
-  #   autoWidth = TRUE,
-  #   columnDefs = list(list(width = '50%', targets = "3"))
-  # )
+  filter = 'top',
+  options = list(lengthMenu = c(5, 10, 25, 50, 100), pageLength = 5)
   )
-  
+10 
   output$tweet <- renderText({
     if (!is.null(input$tweets_rows_selected)) {
       tweets() %>% 
