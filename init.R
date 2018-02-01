@@ -23,15 +23,14 @@ cacheFile <- 'data/rsconf_tweets.rds'
 #   consumer_secret = .TWITTER_CONSUMER_SECRET
 # )
 # saveRDS(twitter_token, .TWITTER_PAT)
+if (file.exists('twitter_secrets.R')) source('twitter_secrets.R')
+if (!exists('.TWITTER_PAT')) {
+  .TWITTER_PAT <- Sys.getenv('TWITTER_PAT')
+  if (.TWITTER_PAT == "") .TWITTER_PAT <- './rtweet.rds'
+}
+twitter_token <- readRDS(.TWITTER_PAT)
 
 get_new_tweets <- function() {
-  if (file.exists('twitter_secrets.R')) source('twitter_secrets.R')
-  if (!exists('.TWITTER_PAT')) {
-    .TWITTER_PAT <- Sys.getenv('TWITTER_PAT')
-    if (.TWITTER_PAT == "") .TWITTER_PAT <- './rtweet.rds'
-  }
-  twitter_token <- readRDS(.TWITTER_PAT)
-  
   tip_words <- "(TIL|DYK|[Tt]ip|[Ll]earned|[Uu]seful|[Kk]now|[Tt]rick)"
   session_words <- "([Aa]vailable|[Oo]nline|[Ll]ink|[Ss]lide|[Ss]ession)"
   rstudio_conf_search <- c("rstudioconf", "rstudio::conf",
@@ -101,4 +100,9 @@ simpleCache('related_hashtags', {
     filter(tag != related, 
            tag %in% top_10_hashtags$`Top 10 Hashtags`,
            related %in% top_10_hashtags$`Top 10 Hashtags`)
+}, recreate = needs_pulled)
+
+simpleCache('users_there_IRL', {
+  # Get twitter people who are there from https://twitter.com/dataandme/lists/rstudioconf18
+  lists_members(908723077084827648, token = twitter_token) %>% pull(user_id)
 }, recreate = needs_pulled)

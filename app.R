@@ -15,6 +15,22 @@ get_tweet_blockquote <- function(screen_name, status_id) {
     .$html
 }
 
+close_to_sd <- function(lat, lng) {
+  sandiego <- rtweet::lookup_coords("Sand Diego, CA")$point %>% as_radian
+  # from http://janmatuschek.de/LatitudeLongitudeBoundingCoordinates
+  
+  delta_lat <- 50/3958.76
+  delta_lng <- asin(sin(as_radian(lat))/cos(delta_lat))
+  lat <- as_radian(lat)
+  lng <- as_radian(lng)
+  lat >= sandiego['lat'] - delta_lat &
+    lat <= sandiego['lat'] + delta_lat &
+    lng >= sandiego['lng'] - delta_lng & 
+    lng <= sandiego['lng'] + delta_lng
+}
+
+as_radian <- function(degree) degree * pi / 180
+
 ui <- fluidPage(
   tags$head(
     tags$link(rel = "stylesheet", type = "text/css", href = "custom.css"),
@@ -90,7 +106,13 @@ server <- function(input, output) {
             'Has Link' = filter(x, !is.na(urls_url)),
             'Has Github Link' = filter(x, str_detect(urls_url, "github")),
             "Retweeted" = filter(x, retweet_count > 0),
-            "Favorited" = filter(x, favorite_count > 0)
+            "Favorited" = filter(x, favorite_count > 0),
+            "Probably There IRL" = x %>% lat_lng() %>% 
+              filter( 
+              str_detect(tolower(place_full_name), "san diego") | 
+                close_to_sd(lat, lng) |
+                user_id %in% users_there_IRL
+            )
           )
         }
       }
@@ -122,7 +144,7 @@ server <- function(input, output) {
     if (input$view %in% c('All', 'Popular')) {
       tagList(
         checkboxGroupInput('filter_binary', 'Tweet Filters', 
-                           choices = c("Not Retweet", "Not Quote", "Has Media", "Has Link", "Has Github Link", "Retweeted", "Favorited"), 
+                           choices = c("Not Retweet", "Not Quote", "Has Media", "Has Link", "Has Github Link", "Retweeted", "Favorited", "Probably There IRL"), 
                            selected = selected_binary,
                            inline = TRUE),
         selectizeInput('filter_hashtag', 'Hashtags', choices = c("", hashtags_related()), selected = selected_hashtags, 
