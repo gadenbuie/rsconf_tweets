@@ -84,7 +84,7 @@ ui <- fluidPage(
 
 server <- function(input, output, session) {
   updated_time <- reactivePoll(
-    60*1000, session, 
+    60*1010, session, 
     checkFunc = function() {
       cacheTime <- last_update()
       cacheAge = difftime(Sys.time(), cacheTime, units="min")
