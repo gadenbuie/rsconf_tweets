@@ -82,7 +82,8 @@ if (needs_pulled) {
       rsconf_tweets <- arrange(new_tweets, desc(created_at))
     }
     saveRDS(rsconf_tweets, "data/rsconf_tweets.rds")
-  }, finally = function() unlink("init.lock"))
+  }, error = function(e) warning(e$message))
+  unlink("init.lock")
   
   cacheTime <- Sys.time()
 }
