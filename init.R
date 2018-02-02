@@ -31,7 +31,7 @@ if (!exists('.TWITTER_PAT')) {
 }
 twitter_token <- readRDS(.TWITTER_PAT)
 
-get_new_tweets <- function(max_id) {
+get_new_tweets <- function(max_id = NULL) {
   tip_words <- "(TIL|DYK|[Tt]ip|[Ll]earned|[Uu]seful|[Kk]now|[Tt]rick)"
   session_words <- "([Aa]vailable|[Oo]nline|[Ll]ink|[Ss]lide|[Ss]ession)"
   rstudio_conf_search <- c("rstudioconf", "rstudio::conf",
