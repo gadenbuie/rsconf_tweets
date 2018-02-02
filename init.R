@@ -69,19 +69,21 @@ needs_pulled <- needs_pulled && !file.exists('init.lock')
 if (needs_pulled) {
   system("touch init.lock")
   
-  new_tweets <- get_new_tweets()
-  if (!is.null(rsconf_tweets)) {
-    rsconf_tweets <- bind_rows(
-      semi_join(new_tweets, rsconf_tweets, by = 'status_id'), # updates old tweets
-      anti_join(rsconf_tweets, new_tweets, by = 'status_id'), # keeps old tweets
-      anti_join(new_tweets, rsconf_tweets, by = 'status_id')  # adds new tweets
-    ) %>% 
-      arrange(desc(created_at))
-  } else {
-    rsconf_tweets <- arrange(new_tweets, desc(created_at))
-  }
-  saveRDS(rsconf_tweets, "data/rsconf_tweets.rds")
-  unlink("init.lock")
+  tryCatch({
+    new_tweets <- get_new_tweets()
+    if (!is.null(rsconf_tweets)) {
+      rsconf_tweets <- bind_rows(
+        semi_join(new_tweets, rsconf_tweets, by = 'status_id'), # updates old tweets
+        anti_join(rsconf_tweets, new_tweets, by = 'status_id'), # keeps old tweets
+        anti_join(new_tweets, rsconf_tweets, by = 'status_id')  # adds new tweets
+      ) %>% 
+        arrange(desc(created_at))
+    } else {
+      rsconf_tweets <- arrange(new_tweets, desc(created_at))
+    }
+    saveRDS(rsconf_tweets, "data/rsconf_tweets.rds")
+  }, finally = function() unlink("init.lock"))
+  
   cacheTime <- Sys.time()
 }
 
