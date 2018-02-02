@@ -66,6 +66,7 @@ ui <- fluidPage(
                  ))),
                tags$p(
                  HTML("&#x1F4BE;"), tags$a(href = 'https://github.com/gadenbuie/rsconf_tweets', 'View on GitHub')
+                 , "or", downloadLink('download_tweets', "Download Tweets")
                ),
                tags$p(
                  "Updated:", strftime(cacheTime, "%F %T %Z", tz = 'America/New_York')
@@ -186,6 +187,15 @@ server <- function(input, output) {
       HTML('<blockquote style="font-size: 90%">Choose a tweet from the table...</blockquote>')
     }
   })
+  
+  output$download_tweets <-  downloadHandler(
+    filename = function() {
+      paste("rstudio-conf-tweets-", Sys.Date(), ".RDS", sep="")
+    },
+    content = function(file) {
+      saveRDS(rsconf_tweets, file)
+    }
+  )
 }
 
 shinyApp(ui = ui, server = server)
