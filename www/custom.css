@@ -1,13 +1,14 @@
 .well.tweetbox {
-    background-color: #f5f5f54d;
-    border: 3px solid #b0b0b0;
-    border-radius: 4px;
+    background-color: #ffffff;
+    border: none;
+    padding: 0px;
 }
 
 .well.tweetbox blockquote {
-    border-left: none;
     margin: 0;
-    padding: 0;
+    padding: 10px;
+    border: 1px solid #b0b0b0;
+    border-radius: 4px;
 }
 
 .colophon {

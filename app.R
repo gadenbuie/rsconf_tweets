@@ -40,7 +40,7 @@ ui <- fluidPage(
   
   
   column(
-    width = 3,
+    width = 4,
     wellPanel(
       selectInput('view', 'Tweet Group', c('Popular', 'Tips', "Talks", "Pictures", "All")),
       uiOutput('help_text'),
@@ -67,7 +67,7 @@ ui <- fluidPage(
     )
   ),
   
-  column(9, DT::dataTableOutput('tweets'))
+  column(8, DT::dataTableOutput('tweets'))
 )
 
 server <- function(input, output) {
@@ -166,7 +166,7 @@ server <- function(input, output) {
   filter = 'top',
   options = list(lengthMenu = c(5, 10, 25, 50, 100), pageLength = 5)
   )
-10 
+
   output$tweet <- renderText({
     if (!is.null(input$tweets_rows_selected)) {
       tweets() %>% 
@@ -176,7 +176,7 @@ server <- function(input, output) {
         ) %>% 
         pull(html)
     } else {
-      "<i>Choose a tweet on the right...</i>"
+      HTML('<blockquote style="font-size: 90%">Choose a tweet from the table...</blockquote>')
     }
   })
 }
