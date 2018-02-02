@@ -62,11 +62,19 @@ if (file.exists(cacheFile)) {
 }
 
 if (needs_pulled) {
-  rsconf_tweets <- get_new_tweets() %>% 
-    filter(!status_id %in% rsconf_tweets$status_id) %>% 
-    bind_rows(rsconf_tweets, .) %>% 
-    arrange(desc(created_at))
+  new_tweets <- get_new_tweets()
+  if (!is.null(rsconf_tweets)) {
+    rsconf_tweets <- bind_rows(
+      semi_join(new_tweets, rsconf_tweets, by = 'status_id'), # updates old tweets
+      anti_join(rsconf_tweets, new_tweets, by = 'status_id'), # keeps old tweets
+      anti_join(new_tweets, rsconf_tweets, by = 'status_id')  # adds new tweets
+    ) %>% 
+      arrange(desc(created_at))
+  } else {
+    rsconf_tweets <- arrange(new_tweets, desc(created_at))
+  }
   saveRDS(rsconf_tweets, "data/rsconf_tweets.rds")
+  cacheTime <- Sys.time()
 }
 
 simpleCache('top_10_hashtags', {
