@@ -53,8 +53,9 @@ ui <- fluidPage(
     tags$div(class = 'colophon', 
              tagList(
                tags$p(
-                 "Made with ❤️ + ☕️ by", tags$a(href = 'https://twitter.com/grrrck/', '@grrrck'),
-                 'with 💪 from',
+                 "Made with", HTML("&#x2764;&#xFE0F;"), "+",  HTML("\u2615\uFE0F"), "by", 
+                 tags$a(href = 'https://twitter.com/grrrck/', '@grrrck'),
+                 'with',  HTML("&#x1F4AA;"), 'from',
                  HTML(paste(
                    tags$a(href = 'http://rtweet.info/', 'rtweet'),
                    tags$a(href = 'https://www.rstudio.com/', 'RStudio'),
@@ -64,7 +65,7 @@ ui <- fluidPage(
                    sep = ', '
                  ))),
                tags$p(
-                 "💾 ", tags$a(href = 'https://github.com/gadenbuie/rsconf_tweets', 'View on GitHub')
+                 HTML("&#x1F4BE;"), tags$a(href = 'https://github.com/gadenbuie/rsconf_tweets', 'View on GitHub')
                ),
                tags$p(
                  "Updated:", strftime(cacheTime, "%F %T %Z", tz = 'America/New_York')
@@ -81,11 +82,11 @@ server <- function(input, output) {
     req(input$view)
     switch(
       input$view,
-      'Popular' = helpText("💯 Most popular (retweets + favs) first"),
-      'Tips' = helpText("💡 Original or quote tweets that mention a tip"),
-      'Talks' = helpText("🎓 Original or quote tweets that mention \"slides\", \"presentations\", etc."),
-      'Pictures' = helpText("📸 Tweets that come with a picture"),
-      'All' = helpText("🤗 All the tweets"),
+      'Popular' = helpText(HTML("&#x1F4AF;"),  "Most popular (retweets + favs) first"),
+      'Tips' = helpText(HTML("&#x1F4A1;"), "Original or quote tweets that mention a tip"),
+      'Talks' = helpText(HTML("&#x1F393;"),  "Original or quote tweets that mention \"slides\", \"presentations\", etc."),
+      'Pictures' = helpText(HTML("&#x1F4F8;"),  "Tweets that come with a picture"),
+      'All' = helpText(HTML("&#x1F917;"), "All the tweets"),
       NULL
     )
   })
