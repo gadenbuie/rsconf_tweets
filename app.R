@@ -10,11 +10,12 @@ library(glue)
 source("init.R")
 
 get_tweet_blockquote <- function(screen_name, status_id) {
-  bq <- httr::GET(glue("https://publish.twitter.com/oembed?url=https://twitter.com/{screen_name}/status/{status_id}?omit_script=true")) %>% 
-    httr::parsed_content()
-  if (is.null(bq$html)) 
+  bq <- httr::GET(glue("https://publish.twitter.com/oembed?url=https://twitter.com/{screen_name}/status/{status_id}?omit_script=true"))
+  if (bq$status_code >= 400)
     '<blockquote style="font-size: 90%">Sorry, unable to get tweet ¯\\_(ツ)_/¯</blockquote>'
-  else bq$html
+  else {
+    httr::parsed_content(bq)$html
+  }
 }
 
 close_to_sd <- function(lat, lng) {
