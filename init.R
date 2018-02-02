@@ -69,12 +69,7 @@ needs_pulled <- needs_pulled && !file.exists('init.lock')
 if (needs_pulled) {
   system("touch init.lock")
   
-  max_id <- if (as.numeric(cacheAge) < 60) rsconf_tweets$status_id
-  if (!is.null(max_id)) {
-    max_id <- max(max_id)
-    message("Getting just new tweets, starting with ", max_id)
-  }
-  new_tweets <- get_new_tweets(max_id)
+  new_tweets <- get_new_tweets()
   if (!is.null(rsconf_tweets)) {
     rsconf_tweets <- bind_rows(
       semi_join(new_tweets, rsconf_tweets, by = 'status_id'), # updates old tweets
