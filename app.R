@@ -10,9 +10,11 @@ library(glue)
 source("init.R")
 
 get_tweet_blockquote <- function(screen_name, status_id) {
-  httr::GET(glue("https://publish.twitter.com/oembed?url=https://twitter.com/{screen_name}/status/{status_id}?omit_script=true")) %>% 
-    httr::parsed_content() %>% 
-    .$html
+  bq <- httr::GET(glue("https://publish.twitter.com/oembed?url=https://twitter.com/{screen_name}/status/{status_id}?omit_script=true")) %>% 
+    httr::parsed_content()
+  if (is.null(bq$html)) 
+    '<blockquote style="font-size: 90%">Sorry, unable to get tweet ¯\\_(ツ)_/¯</blockquote>'
+  else bq$html
 }
 
 close_to_sd <- function(lat, lng) {
@@ -112,10 +114,10 @@ server <- function(input, output) {
             "Favorited" = filter(x, favorite_count > 0),
             "Probably There IRL" = x %>% lat_lng() %>% 
               filter( 
-              str_detect(tolower(place_full_name), "san diego") | 
-                close_to_sd(lat, lng) |
-                user_id %in% users_there_IRL
-            )
+                str_detect(tolower(place_full_name), "san diego") | 
+                  close_to_sd(lat, lng) |
+                  user_id %in% users_there_IRL
+              )
           )
         }
       }
@@ -157,7 +159,7 @@ server <- function(input, output) {
   })
   
   output$tweets <- DT::renderDataTable({
-     tweets() %>% 
+    tweets() %>% 
       select(created_at, screen_name, text, retweet_count, favorite_count, mentions_screen_name) %>% 
       mutate(created_at = strftime(created_at, '%F %T', tz = 'US/Pacific'),
              mentions_screen_name = map_chr(mentions_screen_name, paste, collapse = ', '),
@@ -169,7 +171,7 @@ server <- function(input, output) {
   filter = 'top',
   options = list(lengthMenu = c(5, 10, 25, 50, 100), pageLength = 5)
   )
-
+  
   output$tweet <- renderText({
     if (!is.null(input$tweets_rows_selected)) {
       tweets() %>% 
