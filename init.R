@@ -4,7 +4,7 @@ library(stringr)
 library(glue)
 library(purrr)
 library(simpleCache)
-REFRESH_MINUTES <- 15
+REFRESH_MINUTES <- 10
 
 if (!dir.exists('data')) system('mkdir -p data')
 setCacheDir('data')
