@@ -4,6 +4,7 @@ library(stringr)
 library(glue)
 library(purrr)
 library(simpleCache)
+REFRESH_MINUTES <- 15
 
 if (!dir.exists('data')) system('mkdir -p data')
 setCacheDir('data')
@@ -55,7 +56,7 @@ if (file.exists(cacheFile)) {
   cacheTime = file.info(cacheFile)$ctime
   cacheAge = difftime(Sys.time(), cacheTime, units="min")
   initRAge = difftime(Sys.time(), file.info('init.R')$ctime, units = 'min')
-  needs_pulled <- as.numeric(cacheAge) > 15 | as.numeric(initRAge) < as.numeric(cacheAge)
+  needs_pulled <- as.numeric(cacheAge) > REFRESH_MINUTES | as.numeric(initRAge) < as.numeric(cacheAge)
   rsconf_tweets <- readRDS(cacheFile)
 } else {
   rsconf_tweets <- NULL
@@ -63,7 +64,11 @@ if (file.exists(cacheFile)) {
   needs_pulled <- TRUE
 }
 
+needs_pulled <- needs_pulled && !file.exists('init.lock')
+
 if (needs_pulled) {
+  system("touch init.lock")
+  
   max_id <- if (as.numeric(cacheAge) < 60) rsconf_tweets$status_id
   if (!is.null(max_id)) {
     max_id <- max(max_id)
@@ -81,6 +86,7 @@ if (needs_pulled) {
     rsconf_tweets <- arrange(new_tweets, desc(created_at))
   }
   saveRDS(rsconf_tweets, "data/rsconf_tweets.rds")
+  unlink("init.lock")
   cacheTime <- Sys.time()
 }
 

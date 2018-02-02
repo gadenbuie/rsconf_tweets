@@ -34,6 +34,12 @@ close_to_sd <- function(lat, lng) {
 
 as_radian <- function(degree) degree * pi / 180
 
+last_update <- function() {
+  if (file.exists(cacheFile)) {
+    file.info(cacheFile)$ctime
+  } else ""
+}
+
 ui <- fluidPage(
   tags$head(
     tags$link(rel = "stylesheet", type = "text/css", href = "custom.css"),
@@ -68,9 +74,7 @@ ui <- fluidPage(
                  HTML("&#x1F4BE;"), tags$a(href = 'https://github.com/gadenbuie/rsconf_tweets', 'View on GitHub')
                  , "or", downloadLink('download_tweets', "Download Tweets")
                ),
-               tags$p(
-                 "Updated:", strftime(cacheTime, "%F %T %Z", tz = 'America/New_York')
-               )
+               uiOutput('updated_time')
              )
     )
   ),
@@ -78,7 +82,32 @@ ui <- fluidPage(
   column(8, DT::dataTableOutput('tweets'))
 )
 
-server <- function(input, output) {
+server <- function(input, output, session) {
+  updated_time <- reactivePoll(
+    60*1000, session, 
+    checkFunc = function() {
+      cacheTime <- last_update()
+      cacheAge = difftime(Sys.time(), cacheTime, units="min")
+      message("cacheTime is ", cacheTime)
+      if (as.numeric(cacheAge) > REFRESH_MINUTES & !file.exists('init.lock')) cacheTime
+      else ""
+    },
+    valueFunc = function() {
+      message(strftime(Sys.time(), '%F %T'), " getting new tweets")
+      # showModal(modalDialog(title = "Refreshing tweets...", "Hang on, updated tweets are on their way.", footer = NULL))
+      sys.source('init.R', envir = globalenv())
+      # removeModal()
+      last_update()
+    }
+  )
+  output$updated_time <- renderUI({
+    tags$p(
+      "Updated:", strftime(updated_time(), "%F %T %Z", tz = 'America/New_York')
+    )
+  })
+  
+  rsconf_tweets_ <- reactiveFileReader(REFRESH_MINUTES * 60 * 1000, session, cacheFile, function(file) readRDS(file))
+  
   output$help_text <- renderUI({
     req(input$view)
     switch(
@@ -91,16 +120,17 @@ server <- function(input, output) {
       NULL
     )
   })
+  
   tweets <- reactive({
     x <- switch(
       input$view,
-      'Popular' = rsconf_tweets %>% 
+      'Popular' = rsconf_tweets_() %>% 
         arrange(desc(retweet_count + favorite_count), 
                 -map_int(mentions_screen_name, length)),
-      'Tips' = rsconf_tweets %>% filter(relates_tip, !is_retweet),
-      'Talks' = rsconf_tweets %>% filter(relates_session, !is_retweet),
-      'Pictures' = rsconf_tweets %>% filter(!is_retweet, !is.na(media_url)),
-      rsconf_tweets
+      'Tips' = rsconf_tweets_() %>% filter(relates_tip, !is_retweet),
+      'Talks' = rsconf_tweets_() %>% filter(relates_session, !is_retweet),
+      'Pictures' = rsconf_tweets_() %>% filter(!is_retweet, !is.na(media_url)),
+      rsconf_tweets_()
     ) 
     
     if (input$view %in% c('All', 'Popular')) {
@@ -193,7 +223,7 @@ server <- function(input, output) {
       paste("rstudio-conf-tweets-", Sys.Date(), ".RDS", sep="")
     },
     content = function(file) {
-      saveRDS(rsconf_tweets, file)
+      saveRDS(rsconf_tweets_(), file)
     }
   )
 }
