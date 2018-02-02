@@ -62,6 +62,9 @@ ui <- fluidPage(
                  ))),
                tags$p(
                  "💾 ", tags$a(href = 'https://github.com/gadenbuie/rsconf_tweets', 'View on GitHub')
+               ),
+               tags$p(
+                 "Updated:", strftime(cacheTime, "%F %T %Z", tz = 'America/New_York')
                )
              )
     )
@@ -156,7 +159,7 @@ server <- function(input, output) {
   output$tweets <- DT::renderDataTable({
      tweets() %>% 
       select(created_at, screen_name, text, retweet_count, favorite_count, mentions_screen_name) %>% 
-      mutate(created_at = strftime(created_at, '%F %T'),
+      mutate(created_at = strftime(created_at, '%F %T', tz = 'US/Pacific'),
              mentions_screen_name = map_chr(mentions_screen_name, paste, collapse = ', '),
              mentions_screen_name = ifelse(mentions_screen_name == 'NA', '', mentions_screen_name))
   },
