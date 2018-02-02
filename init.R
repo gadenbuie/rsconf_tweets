@@ -30,7 +30,7 @@ if (!exists('.TWITTER_PAT')) {
 }
 twitter_token <- readRDS(.TWITTER_PAT)
 
-get_new_tweets <- function() {
+get_new_tweets <- function(max_id) {
   tip_words <- "(TIL|DYK|[Tt]ip|[Ll]earned|[Uu]seful|[Kk]now|[Tt]rick)"
   session_words <- "([Aa]vailable|[Oo]nline|[Ll]ink|[Ss]lide|[Ss]ession)"
   rstudio_conf_search <- c("rstudioconf", "rstudio::conf",
@@ -38,8 +38,9 @@ get_new_tweets <- function() {
                            "rstudioconference2018", "rstudio18",
                            "rstudioconf18", "rstudioconf2018",
                            "rstudio::conf18", "rstudio::conf2018")
+  rstudio_conf_search <- paste(rstudio_conf_search, collapse = " OR ")
   
-  rsconf_tweets <- search_tweets2(q = rstudio_conf_search, token = twitter_token, n = 1e5)
+  rsconf_tweets <- search_tweets(q = rstudio_conf_search, token = twitter_token, n = 1e5, max_id = max_id)
   rsconf_tweets %>% 
     mutate(
       relates_tip = str_detect(text, tip_words),
@@ -58,11 +59,17 @@ if (file.exists(cacheFile)) {
   rsconf_tweets <- readRDS(cacheFile)
 } else {
   rsconf_tweets <- NULL
+  cacheAge <- 0
   needs_pulled <- TRUE
 }
 
 if (needs_pulled) {
-  new_tweets <- get_new_tweets()
+  max_id <- if (as.numeric(cacheAge) < 60) rsconf_tweets$status_id
+  if (!is.null(max_id)) {
+    max_id <- max(max_id)
+    message("Getting just new tweets, starting with ", max_id)
+  }
+  new_tweets <- get_new_tweets(max_id)
   if (!is.null(rsconf_tweets)) {
     rsconf_tweets <- bind_rows(
       semi_join(new_tweets, rsconf_tweets, by = 'status_id'), # updates old tweets
