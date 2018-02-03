@@ -52,9 +52,9 @@ get_new_tweets <- function(max_id) {
 
 needs_pulled <- FALSE
 if (file.exists(cacheFile)) {
-  cacheTime = file.info(cacheFile)$ctime
+  cacheTime = file.info(cacheFile)$mtime
   cacheAge = difftime(Sys.time(), cacheTime, units="min")
-  initRAge = difftime(Sys.time(), file.info('init.R')$ctime, units = 'min')
+  initRAge = difftime(Sys.time(), file.info('init.R')$mtime, units = 'min')
   needs_pulled <- as.numeric(cacheAge) > 15 | as.numeric(initRAge) < as.numeric(cacheAge)
   rsconf_tweets <- readRDS(cacheFile)
 } else {
