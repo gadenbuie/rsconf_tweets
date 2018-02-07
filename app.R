@@ -88,21 +88,20 @@ server <- function(input, output, session) {
     checkFunc = function() {
       cacheTime <- last_update()
       cacheAge = difftime(Sys.time(), cacheTime, units="min")
-      message("cacheTime is ", cacheTime)
+      # message("cacheTime is ", cacheTime)
       if (as.numeric(cacheAge) > REFRESH_MINUTES & !file.exists('init.lock')) cacheTime
       else ""
     },
     valueFunc = function() {
       message(strftime(Sys.time(), '%F %T'), " getting new tweets")
-      # showModal(modalDialog(title = "Refreshing tweets...", "Hang on, updated tweets are on their way.", footer = NULL))
       sys.source('init.R', envir = globalenv())
-      # removeModal()
       last_update()
     }
   )
   output$updated_time <- renderUI({
     tags$p(
-      "Updated:", strftime(updated_time(), "%F %T %Z", tz = 'America/New_York')
+      ifelse(TWEET_REFRESH_ENABLED, "Updated:", "Final update:"),
+      strftime(updated_time(), "%F %T %Z", tz = 'America/New_York')
     )
   })
   

@@ -5,6 +5,7 @@ library(glue)
 library(purrr)
 library(simpleCache)
 REFRESH_MINUTES <- 10
+TWEET_REFRESH_ENABLED <- FALSE
 
 if (!dir.exists('data')) system('mkdir -p data')
 setCacheDir('data')
@@ -64,7 +65,7 @@ if (file.exists(cacheFile)) {
   needs_pulled <- TRUE
 }
 
-needs_pulled <- needs_pulled && !file.exists('init.lock')
+needs_pulled <- needs_pulled && !file.exists('init.lock') && TWEET_REFRESH_ENABLED
 
 if (needs_pulled) {
   system("touch init.lock")
