@@ -28,12 +28,14 @@ cacheFile <- 'data/rsconf_tweets.rds'
 #   consumer_secret = .TWITTER_CONSUMER_SECRET
 # )
 # saveRDS(twitter_token, .TWITTER_PAT)
-if (file.exists('twitter_secrets.R')) source('twitter_secrets.R')
-if (!exists('.TWITTER_PAT')) {
-  .TWITTER_PAT <- Sys.getenv('TWITTER_PAT')
-  if (.TWITTER_PAT == "") .TWITTER_PAT <- './rtweet.rds'
+if (TWEET_REFRESH_ENABLED) {
+  if (file.exists('twitter_secrets.R')) source('twitter_secrets.R')
+  if (!exists('.TWITTER_PAT')) {
+    .TWITTER_PAT <- Sys.getenv('TWITTER_PAT')
+    if (.TWITTER_PAT == "") .TWITTER_PAT <- './rtweet.rds'
+  }
+  twitter_token <- readRDS(.TWITTER_PAT)
 }
-twitter_token <- readRDS(.TWITTER_PAT)
 
 get_new_tweets <- function(max_id) {
   tip_words <- "(TIL|DYK|[Tt]ip|[Ll]earned|[Uu]seful|[Kk]now|[Tt]rick)"
