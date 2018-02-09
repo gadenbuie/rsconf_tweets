@@ -1,9 +1,14 @@
-library(rtweet)
-library(dplyr)
-library(stringr)
-library(glue)
-library(purrr)
-library(simpleCache)
+packages = c("shiny", "rtweet", "dplyr", "stringr",
+             "purrr", "httr", "DT", "shinythemes", 
+             "glue", "simpleCache")
+lapply(packages, function(pkg) {
+  if (!require(pkg, character.only = TRUE)) {
+    warning("Installing missing package:", pkg)
+    install.packages(pkg, dependencies = TRUE)
+    require(pkg, character.only = TRUE)
+  }
+})
+TWEET_REFRESH_ENABLED <- FALSE
 
 if (!dir.exists('data')) system('mkdir -p data')
 setCacheDir('data')
@@ -55,7 +60,7 @@ if (file.exists(cacheFile)) {
   cacheTime = file.info(cacheFile)$mtime
   cacheAge = difftime(Sys.time(), cacheTime, units="min")
   initRAge = difftime(Sys.time(), file.info('init.R')$mtime, units = 'min')
-  needs_pulled <- as.numeric(cacheAge) > 15 | as.numeric(initRAge) < as.numeric(cacheAge)
+  needs_pulled <- (as.numeric(cacheAge) > 15 | as.numeric(initRAge) < as.numeric(cacheAge)) && TWEET_REFRESH_ENABLED
   rsconf_tweets <- readRDS(cacheFile)
 } else {
   rsconf_tweets <- NULL

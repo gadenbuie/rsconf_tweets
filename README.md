@@ -8,6 +8,10 @@ Try it on [shinyapps.io](https://gadenbuie.shinyapps.io/rsconf_tweets/) or [run 
 
 ## Run this on your own machine
 
+**UPDATE 2018-02-09**: RStudio::conf 2018 is now over!
+This repo now includes the tweets I gathered during the conference, so you do not need to worry about authenticating with Twitter.
+You can run the app locally with a simple `shiny::runGitHub("rsconf_tweets", "gadenbuie")`
+
 To run this on your own, you need to create an OAuth twitter token for [`rtweet`][rtweet].
 I followed Bob Rudis's ([hrbrmstr](https://twitter.com/hrbrmstr)) excellent guide from [21 Recipes for Mining Twitter with rtweet](https://rud.is/books/21-recipes/).
 

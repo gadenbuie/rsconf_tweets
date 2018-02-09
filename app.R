@@ -69,7 +69,7 @@ ui <- fluidPage(
                  , "or", downloadLink('download_tweets', "Download Tweets")
                ),
                tags$p(
-                 "Updated:", strftime(cacheTime, "%F %T %Z", tz = 'America/New_York')
+                 "Final update: 2018-02-07 11:48:02 EST"
                )
              )
     )
