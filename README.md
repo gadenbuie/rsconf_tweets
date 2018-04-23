@@ -1,16 +1,21 @@
-# `rstudio::conf_tweets()`
+# Tweets from `#rstatsnyc`
 
-A quick fix for your [rstudio::conf][rstudio-conf] FOMO.
-Try it on [shinyapps.io](https://gadenbuie.shinyapps.io/rsconf_tweets/) or [run it yourself](#run-this-on-your-own-machine)!
+A quick fix for your ~~rstudioconf~~ [rstatsnyc][rstatsnyc-conf] FOMO.
+Try it online [apps.garrickadenbuie.com/rstatsnyc-2018-tweets](https://apps.garrickadenbuie.com/rstatsnyc-2018-tweets/) or [run it yourself](#run-this-on-your-own-machine)!
 
-[![](screenshot.png)](https://gadenbuie.shinyapps.io/rsconf_tweets/)
+[![](screenshot.png)](https://apps.garrickadenbuie.com/rstatsnyc-2018-tweets/)
+
+## Forked from rsconf_tweets()
+
+I forked this from my [RStudio::conf 2018 tweet explorer](https://github.com/gadenbuie/rsconf_tweets).
+Maybe this should be a generic conference tweet app?
 
 
 ## Run this on your own machine
 
-**UPDATE 2018-02-09**: RStudio::conf 2018 is now over!
+~~RStudio::conf 2018~~ rstatsnyc is now over!
 This repo now includes the tweets I gathered during the conference, so you do not need to worry about authenticating with Twitter.
-You can run the app locally with a simple `shiny::runGitHub("rsconf_tweets", "gadenbuie")`
+You can run the app locally with a simple `shiny::runGitHub("rstatsnyc-2018-tweets", "gadenbuie")`
 
 To run this on your own, you need to create an OAuth twitter token for [`rtweet`][rtweet].
 I followed Bob Rudis's ([hrbrmstr](https://twitter.com/hrbrmstr)) excellent guide from [21 Recipes for Mining Twitter with rtweet](https://rud.is/books/21-recipes/).
@@ -38,7 +43,7 @@ install.packages(packages)
 
 ## How it works
 
-I used a simple twitter search for anything tagged or related to `rstudioconf`.
+I used a simple twitter search for anything tagged or related to ~~`rstudioconf`~~ `rstatsnyc`.
 Ininitally I was just looking at anything tagged `#rstudioconf`, but I borrowed the search terms from [Michael Kearney](https://github.com/mkearney/rstudioconf_tweets).
 
 ```r
@@ -58,5 +63,5 @@ Check out [`init.r`](init.R) for more details.
 
 [\@kearneymw](https://twitter.com/kearneymw) posted a script that collects tweets and makes awesome plots at <https://github.com/mkearney/rstudioconf_tweets>
 
-[rstudio-conf]: https://www.rstudio.com/conference/
+[rstatsnyc-conf]: https://www.rstats.nyc/
 [rtweet]: http://rtweet.info/

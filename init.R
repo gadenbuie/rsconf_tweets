@@ -8,8 +8,8 @@ lapply(packages, function(pkg) {
     require(pkg, character.only = TRUE)
   }
 })
-TWEET_REFRESH_ENABLED <- TRUE
-GITHUB_REPO_URL <- 'https://github.com/gadenbuie/rsconf_tweets'
+TWEET_REFRESH_ENABLED <- FALSE
+GITHUB_REPO_URL <- 'https://github.com/gadenbuie/rstatsnyc-2018-tweets'
 
 if (!dir.exists('data')) system('mkdir -p data')
 setCacheDir('data')
