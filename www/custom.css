@@ -14,3 +14,9 @@
 .colophon {
   font-size: 75%;
 }
+table.dataTable.stripe tbody tr.odd.selected, table.dataTable.display tbody tr.odd.selected {
+    background-color: #EDA5A6;
+}
+table.dataTable.hover tbody tr:hover, table.dataTable.display tbody tr:hover {
+    background-color: #EDA5A680;
+}

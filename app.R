@@ -18,18 +18,18 @@ get_tweet_blockquote <- function(screen_name, status_id) {
   }
 }
 
-close_to_sd <- function(lat, lng) {
-  sandiego <- rtweet::lookup_coords("Sand Diego, CA")$point %>% as_radian
+close_to_lat_lng <- function(lat, lng, this_place) {
+  this_place <- rtweet::lookup_coords(this_place)$point %>% as_radian
   # from http://janmatuschek.de/LatitudeLongitudeBoundingCoordinates
   
   delta_lat <- 50/3958.76
   delta_lng <- asin(sin(as_radian(lat))/cos(delta_lat))
   lat <- as_radian(lat)
   lng <- as_radian(lng)
-  lat >= sandiego['lat'] - delta_lat &
-    lat <= sandiego['lat'] + delta_lat &
-    lng >= sandiego['lng'] - delta_lng & 
-    lng <= sandiego['lng'] + delta_lng
+  lat >= this_place['lat'] - delta_lat &
+    lat <= this_place['lat'] + delta_lat &
+    lng >= this_place['lng'] - delta_lng & 
+    lng <= this_place['lng'] + delta_lng
 }
 
 as_radian <- function(degree) degree * pi / 180
@@ -38,7 +38,7 @@ ui <- fluidPage(
   tags$head(
     tags$link(rel = "stylesheet", type = "text/css", href = "custom.css"),
     tags$script(src="twitter.js")),
-  titlePanel("rstudio::conf_twitter()"),
+  titlePanel("rstatsnyc tweets"),
   theme = shinythemes::shinytheme('yeti'),
   
   
@@ -65,11 +65,11 @@ ui <- fluidPage(
                    sep = ', '
                  ))),
                tags$p(
-                 HTML("&#x1F4BE;"), tags$a(href = 'https://github.com/gadenbuie/rsconf_tweets', 'View on GitHub')
+                 HTML("&#x1F4BE;"), tags$a(href = GITHUB_REPO_URL, 'View on GitHub')
                  , "or", downloadLink('download_tweets', "Download Tweets")
                ),
                tags$p(
-                 "Final update: 2018-02-07 11:48:02 EST"
+                 "Updated:", strftime(cacheTime, "%F %T %Z", tz = 'America/New_York')
                )
              )
     )
@@ -94,13 +94,13 @@ server <- function(input, output) {
   tweets <- reactive({
     x <- switch(
       input$view,
-      'Popular' = rsconf_tweets %>% 
+      'Popular' = conf_tweets %>% 
         arrange(desc(retweet_count + favorite_count), 
                 -map_int(mentions_screen_name, length)),
-      'Tips' = rsconf_tweets %>% filter(relates_tip, !is_retweet),
-      'Talks' = rsconf_tweets %>% filter(relates_session, !is_retweet),
-      'Pictures' = rsconf_tweets %>% filter(!is_retweet, !is.na(media_url)),
-      rsconf_tweets
+      'Tips' = conf_tweets %>% filter(relates_tip, !is_retweet),
+      'Talks' = conf_tweets %>% filter(relates_session, !is_retweet),
+      'Pictures' = conf_tweets %>% filter(!is_retweet, !is.na(media_url)),
+     conf_tweets
     ) 
     
     if (input$view %in% c('All', 'Popular')) {
@@ -117,9 +117,8 @@ server <- function(input, output) {
             "Favorited" = filter(x, favorite_count > 0),
             "Probably There IRL" = x %>% lat_lng() %>% 
               filter( 
-                str_detect(tolower(place_full_name), "san diego") | 
-                  close_to_sd(lat, lng) |
-                  user_id %in% users_there_IRL
+                str_detect(tolower(place_full_name), "new york city|nyc|new york") | 
+                  close_to_lat_lng(lat, lng, "New York City, NY")
               )
           )
         }
@@ -164,7 +163,7 @@ server <- function(input, output) {
   output$tweets <- DT::renderDataTable({
     tweets() %>% 
       select(created_at, screen_name, text, retweet_count, favorite_count, mentions_screen_name) %>% 
-      mutate(created_at = strftime(created_at, '%F %T', tz = 'US/Pacific'),
+      mutate(created_at = strftime(created_at, '%F %T', tz = 'America/New_York'),
              mentions_screen_name = map_chr(mentions_screen_name, paste, collapse = ', '),
              mentions_screen_name = ifelse(mentions_screen_name == 'NA', '', mentions_screen_name))
   },
@@ -193,7 +192,7 @@ server <- function(input, output) {
       paste("rstudio-conf-tweets-", Sys.Date(), ".RDS", sep="")
     },
     content = function(file) {
-      saveRDS(rsconf_tweets, file)
+      saveRDS(conf_tweets, file)
     }
   )
 }
