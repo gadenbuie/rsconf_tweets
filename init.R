@@ -1,6 +1,6 @@
 packages = c("shiny", "rtweet", "dplyr", "stringr",
              "purrr", "httr", "DT", "shinythemes", 
-             "glue", "simpleCache")
+             "shinyjs", "glue", "simpleCache")
 lapply(packages, function(pkg) {
   if (!require(pkg, character.only = TRUE)) {
     warning("Installing missing package:", pkg)
@@ -8,8 +8,10 @@ lapply(packages, function(pkg) {
     require(pkg, character.only = TRUE)
   }
 })
-TWEET_REFRESH_ENABLED <- FALSE
-GITHUB_REPO_URL <- 'https://github.com/gadenbuie/rstatsnyc-2018-tweets'
+TWEET_REFRESH_ENABLED <- TRUE
+GITHUB_REPO_URL <- 'https://github.com/gadenbuie/user-2018-tweets'
+CONFERENCE_NAME <- "UseR!2018"
+CONFERENCE_URL <- "https://user2018.r-project.org/"
 
 if (!dir.exists('data')) system('mkdir -p data')
 setCacheDir('data')
@@ -41,10 +43,10 @@ if (TWEET_REFRESH_ENABLED) {
 get_new_tweets <- function(max_id) {
   tip_words <- "(TIL|DYK|[Tt]ip|[Ll]earned|[Uu]seful|[Kk]now|[Tt]rick)"
   session_words <- "([Aa]vailable|[Oo]nline|[Ll]ink|[Ss]lide|[Ss]ession)"
-  rstudio_conf_search <- c("#rstatsnyc")
-  rstudio_conf_search <- paste(rstudio_conf_search, collapse = " OR ")
+  conf_search <- c("#user2018", "user2018", "@useR2018_conf", "user2018_conf")
+  conf_search <- paste(conf_search, collapse = " OR ")
   
-  conf_tweets <- search_tweets(q = rstudio_conf_search, token = twitter_token, n = 1e5, max_id = max_id)
+  conf_tweets <- search_tweets(q = conf_search, token = twitter_token, n = 1e5, since_id = max_id)
   conf_tweets %>% 
     mutate(
       relates_tip = str_detect(text, tip_words),
@@ -95,7 +97,7 @@ simpleCache('top_10_hashtags', {
     pull(hashtags) %>% 
     unlist %>% 
     data_frame(`Top 10 Hashtags` = .) %>% 
-    filter(!`Top 10 Hashtags` %in% c('rstatsnyc')) %>%
+    filter(!tolower(`Top 10 Hashtags`) %in% c('user2018')) %>%
     group_by(`Top 10 Hashtags`) %>% 
     tally(sort = TRUE) %>% 
     top_n(10, n) %>% select(-n)
@@ -121,6 +123,58 @@ simpleCache('related_hashtags', {
            tag %in% top_10_hashtags$`Top 10 Hashtags`,
            related %in% top_10_hashtags$`Top 10 Hashtags`)
 }, recreate = needs_pulled)
+
+simpleCache("user2018_schedule_csv", {
+  readr::read_csv(
+    "user2018_schedule.csv", 
+    col_types = readr::cols(
+      Date = readr::col_character(), 
+      Time = readr::col_character(), 
+      X1   = readr::col_skip(), 
+      X2   = readr::col_skip())
+  ) %>% 
+    mutate(`Date & Time` = paste(Date, Time)) %>% 
+    select(-Date, -Time) %>% 
+    select(`Date & Time`, everything())
+})
+
+simpleCache('user2018_screen_names', {
+  user2018_user_search <- user2018_schedule_csv$Presenter %>%
+    unique() %>%
+    set_names() %>%
+    map(search_users, n = 25)
+  
+  guess_handle <- function(df, queried_name) {
+    colnames(df)[70] <- "status_url"
+    mutate(
+      df, 
+      presenter_name = queried_name, 
+      fits_profile = !protected & 
+        str_detect(tolower(description), "data|rstats|code|stats|statisti(cs|an)|computational|modeling|r program") | 
+        (!is.na(name) && name == queried_name & nrow(df) == 1)
+      ) %>%
+    select(presenter_name, fits_profile, user_id, screen_name, name, location, 
+           description, followers_count, friends_count, statuses_count)
+  }
+  
+  user2018_user_search %>%
+    keep(~nrow(.) > 0) %>%
+    imap_dfr(~guess_handle(.x, .y), .id = "presenter_name") %>% 
+    filter(
+      fits_profile,
+      !screen_name %in% c("RLaytonDawg", "danwwilson") # dopplegangers
+    ) %>% 
+    select(-fits_profile)
+})
+
+simpleCache("user2018_schedule", {
+  user2018_screen_names %>% 
+    select(
+      Presenter = presenter_name, 
+      Twitter = screen_name, 
+      user_id, followers_count, friends_count) %>% 
+    left_join(user2018_schedule_csv, ., by = "Presenter")
+})
 
 # simpleCache('users_there_IRL', {
 #   # Get twitter people who are there from https://twitter.com/dataandme/lists/rstudioconf18

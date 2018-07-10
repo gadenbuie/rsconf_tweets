@@ -5,21 +5,24 @@ library(stringr)
 library(purrr)
 requireNamespace('httr', quietly = TRUE)
 requireNamespace('shinythemes', quietly = TRUE)
+requireNamespace('shinyjs', quietly = TRUE)
 requireNamespace('DT', quietly = TRUE)
 library(glue)
 source("init.R")
+brisbane_lat_lng <- c("lat" = -27.470125, "lng" = 153.021072)
 
 get_tweet_blockquote <- function(screen_name, status_id) {
   bq <- httr::GET(glue("https://publish.twitter.com/oembed?url=https://twitter.com/{screen_name}/status/{status_id}?omit_script=true"))
   if (bq$status_code >= 400)
     '<blockquote style="font-size: 90%">Sorry, unable to get tweet ¯\\_(ツ)_/¯</blockquote>'
   else {
-    httr::parsed_content(bq)$html
+    httr::content(bq, "parsed")$html
   }
 }
 
-close_to_lat_lng <- function(lat, lng, this_place) {
-  this_place <- rtweet::lookup_coords(this_place)$point %>% as_radian
+close_to_lat_lng <- function(lat, lng, this_place = NULL) {
+  if (is.null(this_place)) this_place <- rtweet::lookup_coords(this_place)$point 
+  this_place <- as_radian(this_place)
   # from http://janmatuschek.de/LatitudeLongitudeBoundingCoordinates
   
   delta_lat <- 50/3958.76
@@ -34,24 +37,46 @@ close_to_lat_lng <- function(lat, lng, this_place) {
 
 as_radian <- function(degree) degree * pi / 180
 
+available_timezones <- OlsonNames()
+timezone_list <- str_subset(available_timezones, "/") %>% 
+  str_split("/", simplify = TRUE, n = 2) %>% 
+  as_tibble() %>%
+  mutate(V2 = paste0(V1, "/", V2)) %>% 
+  split(.$V1) %>% 
+  purrr::map(~ pull(., V2))
+timezone_list$Other <- available_timezones[!str_detect(available_timezones, "/")]
+  
+
 ui <- fluidPage(
   tags$head(
     tags$link(rel = "stylesheet", type = "text/css", href = "custom.css"),
     tags$script(src="twitter.js")),
-  titlePanel("rstatsnyc tweets"),
-  theme = shinythemes::shinytheme('yeti'),
+  titlePanel(paste(CONFERENCE_NAME, "tweets")),
+  shinyjs::useShinyjs(),
+  theme = shinythemes::shinytheme('united'),
   
   
   column(
     width = 4,
     wellPanel(
-      selectInput('view', 'Tweet Group', c('Popular', 'Tips', "Talks", "Pictures", "All")),
+      selectInput('view', 'Tweet Group', c('Popular', 'Tips', "Talks", "Presenters", "Pictures", "All")),
       uiOutput('help_text'),
-      uiOutput('filters')
+      actionLink("toggle_filters", label = "Show Filters"),
+      shinyjs::hidden(
+        div(
+          id = "extra_filters", 
+          hr(),
+          uiOutput('filters'),
+          selectInput("time_zone", label = "Show Tweet Timestamp in", choices = timezone_list, selected = "Australia/Brisbane")
+        )
+      )
     ),
     wellPanel(class = 'tweetbox', htmlOutput('tweet')),
     tags$div(class = 'colophon', 
              tagList(
+               tags$p(
+                 tags$a(href = CONFERENCE_URL, target = "_blank", CONFERENCE_NAME, "Conference Page")
+               ),
                tags$p(
                  "Made with", HTML("&#x2764;&#xFE0F;"), "+",  HTML("\u2615\uFE0F"), "by", 
                  tags$a(href = 'https://twitter.com/grrrck/', '@grrrck'),
@@ -75,10 +100,29 @@ ui <- fluidPage(
     )
   ),
   
-  column(8, DT::dataTableOutput('tweets'))
+  column(8, 
+         tabsetPanel(
+           tabPanel(
+             "Tweets",
+             DT::dataTableOutput('tweets')),
+           tabPanel(
+             "Schedule",
+             DT::dataTableOutput("schedule")
+           )
+         )
+  )
 )
 
-server <- function(input, output) {
+server <- function(input, output, session) {
+  observeEvent(input$toggle_filters, {
+    req(input$toggle_filters > 0)
+    if (input$toggle_filters %% 2 == 0) {
+      updateActionButton(session, "toggle_filters", label = "Hide Filters")
+    } else {
+      updateActionButton(session, "toggle_filters", label = "Show Filters")
+    }
+    shinyjs::toggle("extra_filters", anim = TRUE, animType = "slide")
+  })
   output$help_text <- renderUI({
     req(input$view)
     switch(
@@ -86,6 +130,7 @@ server <- function(input, output) {
       'Popular' = helpText(HTML("&#x1F4AF;"),  "Most popular (retweets + favs) first"),
       'Tips' = helpText(HTML("&#x1F4A1;"), "Original or quote tweets that mention a tip"),
       'Talks' = helpText(HTML("&#x1F393;"),  "Original or quote tweets that mention \"slides\", \"presentations\", etc."),
+      'Presenters' = helpText(HTML("&#x1F929"), "Tweets from UseR!2018 Presenters"),
       'Pictures' = helpText(HTML("&#x1F4F8;"),  "Tweets that come with a picture"),
       'All' = helpText(HTML("&#x1F917;"), "All the tweets"),
       NULL
@@ -99,11 +144,19 @@ server <- function(input, output) {
                 -map_int(mentions_screen_name, length)),
       'Tips' = conf_tweets %>% filter(relates_tip, !is_retweet),
       'Talks' = conf_tweets %>% filter(relates_session, !is_retweet),
+      'Presenters' = {
+        presenter_screen_names <- user2018_schedule %>% 
+          filter(!is.na(Twitter)) %>% 
+          pull(Twitter) %>% 
+          unique()
+        
+        conf_tweets %>% filter(screen_name %in% presenter_screen_names)
+      },
       'Pictures' = conf_tweets %>% filter(!is_retweet, !is.na(media_url)),
      conf_tweets
     ) 
     
-    if (input$view %in% c('All', 'Popular')) {
+    if (input$view %in% c('All', 'Popular', 'Presenters')) {
       if (length(input$filter_binary)) {
         for (filter_binary in input$filter_binary) {
           x <- switch(
@@ -117,8 +170,8 @@ server <- function(input, output) {
             "Favorited" = filter(x, favorite_count > 0),
             "Probably There IRL" = x %>% lat_lng() %>% 
               filter( 
-                str_detect(tolower(place_full_name), "new york city|nyc|new york") | 
-                  close_to_lat_lng(lat, lng, "New York City, NY")
+                str_detect(tolower(place_full_name), "portland|oregon") | 
+                  close_to_lat_lng(lat, lng, brisbane_lat_lng)
               )
           )
         }
@@ -134,7 +187,7 @@ server <- function(input, output) {
   })
   
   hashtags_related <- reactive({
-    req(input$view %in% c('All', 'Popular'))
+    req(input$view %in% c('All', 'Popular', "Presenters"))
     if (is.null(input$filter_hashtag) || input$filter_hashtag == '') return(top_10_hashtags)
     limit_to_tags <- related_hashtags %>% 
       filter(tag %in% input$filter_hashtag) %>% 
@@ -148,10 +201,15 @@ server <- function(input, output) {
   output$filters <- renderUI({
     selected_hashtags <- isolate(input$filter_hashtag)
     selected_binary <- isolate(input$filter_binary)
-    if (input$view %in% c('All', 'Popular')) {
+    filter_choices <- c("Not Retweet", "Not Quote", "Has Media", "Has Link", "Has Github Link", "Retweeted", "Favorited", "Probably There IRL")
+    if (input$view == "Presenters") {
+      filter_choices <- setdiff(filter_choices, "Probably There IRL")
+      selected_binary <- setdiff(selected_binary, "Probably There IRL")
+    }
+    if (input$view %in% c('All', 'Popular', "Presenters")) {
       tagList(
         checkboxGroupInput('filter_binary', 'Tweet Filters', 
-                           choices = c("Not Retweet", "Not Quote", "Has Media", "Has Link", "Has Github Link", "Retweeted", "Favorited", "Probably There IRL"), 
+                           choices = filter_choices,
                            selected = selected_binary,
                            inline = TRUE),
         selectizeInput('filter_hashtag', 'Hashtags', choices = c("", hashtags_related()), selected = selected_hashtags, 
@@ -163,10 +221,11 @@ server <- function(input, output) {
   output$tweets <- DT::renderDataTable({
     tweets() %>% 
       select(created_at, screen_name, text, retweet_count, favorite_count, mentions_screen_name) %>% 
-      mutate(created_at = strftime(created_at, '%F %T', tz = 'America/New_York'),
+      mutate(created_at = strftime(created_at, '%F %T', tz = input$time_zone),
              mentions_screen_name = map_chr(mentions_screen_name, paste, collapse = ', '),
              mentions_screen_name = ifelse(mentions_screen_name == 'NA', '', mentions_screen_name))
   },
+  server = TRUE,
   selection = 'single', 
   rownames = FALSE, 
   colnames = c("Timestamp", "User", "Tweet", "RT", "Fav", "Mentioned"), 
@@ -187,9 +246,24 @@ server <- function(input, output) {
     }
   })
   
+  output$schedule <- DT::renderDataTable({
+    select(user2018_schedule, -user_id:-friends_count) %>% 
+      mutate(
+        Twitter = ifelse(!is.na(Twitter), 
+                         glue::glue('<a href="https://twitter.com/{Twitter}">&commat;{Twitter}</a>'), 
+                         "")
+      ) %>% 
+      select(-Abstract)
+  }, 
+  escape = FALSE,
+  selection = "none",
+  filter = "top",
+  options = list(lengthMenu = c(5, 10, 25, 50, 100), pageLength = 10)
+  )
+  
   output$download_tweets <-  downloadHandler(
     filename = function() {
-      paste("rstudio-conf-tweets-", Sys.Date(), ".RDS", sep="")
+      paste("conf-tweets-", Sys.Date(), ".RDS", sep="")
     },
     content = function(file) {
       saveRDS(conf_tweets, file)
