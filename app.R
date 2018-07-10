@@ -9,6 +9,12 @@ requireNamespace('shinyjs', quietly = TRUE)
 requireNamespace('DT', quietly = TRUE)
 library(glue)
 source("init.R")
+setCacheDir('data')
+if (!file.exists("data/rstats_tweets.rds")) source("update.R")
+simpleCache("top_hashtags")
+simpleCache("related_hashtags")
+simpleCache('user2018_screen_names')
+simpleCache("user2018_schedule")
 brisbane_lat_lng <- c("lat" = -27.470125, "lng" = 153.021072)
 
 get_tweet_blockquote <- function(screen_name, status_id) {
@@ -94,7 +100,7 @@ ui <- fluidPage(
                  , "or", downloadLink('download_tweets', "Download Tweets")
                ),
                tags$p(
-                 "Updated:", strftime(cacheTime, "%F %T %Z", tz = 'America/New_York')
+                 uiOutput("updated_time")
                )
              )
     )
@@ -136,24 +142,31 @@ server <- function(input, output, session) {
       NULL
     )
   })
+  conf_tweets  <- reactiveFileReader(60000, session, "data/conf_tweets.rds", readRDS)
+  conf_updated <- reactiveFileReader(60000, session, "data/conf_tweets.rds", function(file) {
+    file.info(file)$mtime
+  })
+  output$updated_time <- renderUI({
+    tags$p("Updated:", strftime(conf_updated(), "%F %T %Z", tz = input$time_zone))
+  })
   tweets <- reactive({
     x <- switch(
       input$view,
-      'Popular' = conf_tweets %>% 
+      'Popular' = conf_tweets() %>% 
         arrange(desc(retweet_count + favorite_count), 
                 -map_int(mentions_screen_name, length)),
-      'Tips' = conf_tweets %>% filter(relates_tip, !is_retweet),
-      'Talks' = conf_tweets %>% filter(relates_session, !is_retweet),
+      'Tips' = conf_tweets() %>% filter(relates_tip, !is_retweet),
+      'Talks' = conf_tweets() %>% filter(relates_session, !is_retweet),
       'Presenters' = {
         presenter_screen_names <- user2018_schedule %>% 
           filter(!is.na(Twitter)) %>% 
           pull(Twitter) %>% 
           unique()
         
-        conf_tweets %>% filter(screen_name %in% presenter_screen_names)
+        conf_tweets() %>% filter(screen_name %in% presenter_screen_names)
       },
-      'Pictures' = conf_tweets %>% filter(!is_retweet, !is.na(media_url)),
-     conf_tweets
+      'Pictures' = conf_tweets() %>% filter(!is_retweet, !is.na(media_url)),
+     conf_tweets()
     ) 
     
     if (input$view %in% c('All', 'Popular', 'Presenters')) {
@@ -188,14 +201,14 @@ server <- function(input, output, session) {
   
   hashtags_related <- reactive({
     req(input$view %in% c('All', 'Popular', "Presenters"))
-    if (is.null(input$filter_hashtag) || input$filter_hashtag == '') return(top_10_hashtags)
+    if (is.null(input$filter_hashtag) || input$filter_hashtag == '') return(top_hashtags)
     limit_to_tags <- related_hashtags %>% 
       filter(tag %in% input$filter_hashtag) %>% 
       pull(related) %>% 
       unique()
-    top_10_hashtags %>% 
-      filter(`Top 10 Hashtags` %in% c(limit_to_tags, input$filter_hashtag)) %>% 
-      pull(`Top 10 Hashtags`)
+    top_hashtags %>% 
+      filter(`Top Hashtags` %in% c(limit_to_tags, input$filter_hashtag)) %>% 
+      pull(`Top Hashtags`)
   })
   
   output$filters <- renderUI({
@@ -266,7 +279,7 @@ server <- function(input, output, session) {
       paste("conf-tweets-", Sys.Date(), ".RDS", sep="")
     },
     content = function(file) {
-      saveRDS(conf_tweets, file)
+      saveRDS(conf_tweets(), file)
     }
   )
 }
