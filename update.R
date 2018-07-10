@@ -57,6 +57,7 @@ if (file.exists(cacheFile)) {
 
 if (needs_pulled) {
   max_id <- if (as.numeric(cacheAge) < 60) conf_tweets$status_id
+  if (lubridate::minute(lubridate::now()) < 15) max_id <- NULL
   if (!is.null(max_id)) {
     max_id <- max(max_id)
     message("Getting just new tweets, starting with ", max_id)
