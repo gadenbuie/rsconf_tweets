@@ -62,7 +62,6 @@ if (needs_pulled) {
     max_id <- max(max_id)
     message("Getting just new tweets, starting with ", max_id)
   }
-  max_id <- NULL
   new_tweets <- get_new_tweets(max_id)
   if (!is.null(conf_tweets)) {
     conf_tweets <- bind_rows(
@@ -137,7 +136,7 @@ simpleCache('user2018_screen_names', {
       df, 
       presenter_name = queried_name, 
       fits_profile = !protected & 
-        str_detect(tolower(description), "data|rstats|code|stats|statisti(cs|an)|computational|modeling|r program") | 
+        str_detect(tolower(description), "data|rstats|code|stats|statistic(s|ian|al)|computational|modeling|bayes|r program") | 
         (!is.na(name) && name == queried_name & nrow(df) == 1)
     ) %>%
       select(presenter_name, fits_profile, user_id, screen_name, name, location, 
@@ -149,7 +148,7 @@ simpleCache('user2018_screen_names', {
     imap_dfr(~guess_handle(.x, .y), .id = "presenter_name") %>% 
     filter(
       fits_profile,
-      !screen_name %in% c("RLaytonDawg", "danwwilson") # dopplegangers
+      !screen_name %in% c("RLaytonDawg", "danwwilson", "aidybarnettr") # dopplegangers
     ) %>% 
     select(-fits_profile)
 })
@@ -162,8 +161,3 @@ simpleCache("user2018_schedule", {
       user_id, followers_count, friends_count) %>% 
     left_join(user2018_schedule_csv, ., by = "Presenter")
 })
-
-# simpleCache('users_there_IRL', {
-#   # Get twitter people who are there from https://twitter.com/dataandme/lists/rstudioconf18
-#   lists_members(908723077084827648, token = twitter_token) %>% pull(user_id)
-# }, recreate = needs_pulled)
